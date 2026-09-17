@@ -160,7 +160,11 @@ namespace SerapKeremGameKit._Managers
         {
             // notify state if needed
             if (ActiveLevelInstance != null)
+            {
+                ActiveLevelInstance.gameObject.SetActive(false);
                 Destroy(ActiveLevelInstance.gameObject);
+                ActiveLevelInstance = null;
+            }
         }
 
         #endregion

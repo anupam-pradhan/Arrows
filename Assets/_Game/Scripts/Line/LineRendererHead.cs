@@ -97,7 +97,12 @@ namespace _Game.Line
             Vector3 endPosition = _lineRenderer.GetPosition(lastIndex);
             Vector3 previousPosition = _lineRenderer.GetPosition(lastIndex - 1);
 
-            transform.localPosition = endPosition;
+            if (!_lineRenderer.useWorldSpace)
+            {
+                endPosition = _lineRenderer.transform.TransformPoint(endPosition);
+                previousPosition = _lineRenderer.transform.TransformPoint(previousPosition);
+            }
+            transform.position = endPosition;
 
             Vector3 direction = (endPosition - previousPosition).normalized;
             if (direction.sqrMagnitude < 0.0001f)

@@ -2,6 +2,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using _Game.UI;
+using SerapKeremGameKit._InputSystem;
+using SerapKeremGameKit._LevelSystem;
+using SerapKeremGameKit._Managers;
 
 namespace SerapKeremGameKit._UI
 {
@@ -11,20 +14,51 @@ namespace SerapKeremGameKit._UI
         [SerializeField] private TextMeshProUGUI _timeText;
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _settingsButton;
+        [SerializeField] private Button _hintButton;
+        [SerializeField] private TextMeshProUGUI _hintStatus;
         [SerializeField] private UIRootController _uiRoot;
         [SerializeField] private HeartPanel _heartPanel;
 
         private bool _isInitialized = false;
+        private float _hintStatusUntil;
 
         private void Awake()
         {
             if (_restartButton != null) _restartButton.BindOnClick(this, OnRestartClicked);
             if (_settingsButton != null) _settingsButton.BindOnClick(this, OnSettingsClicked);
+            if (_hintButton != null) _hintButton.BindOnClick(this, OnHintClicked);
+        }
+
+        private void Update()
+        {
+            if (_hintButton == null) return;
+            Level level = LevelManager.IsInitialized ? LevelManager.Instance.ActiveLevelInstance : null;
+            _hintButton.interactable = StateManager.IsInitialized &&
+                StateManager.Instance.CurrentState == GameState.OnStart &&
+                (!InputHandler.IsInitialized || !InputHandler.Instance.IsInputLocked) &&
+                level != null && level.LineManager != null && !level.LineManager.HasMovingLines;
+            if (_hintStatus != null && Time.unscaledTime >= _hintStatusUntil)
+                _hintStatus.text = "Hint";
+        }
+
+        private void OnHintClicked()
+        {
+            if (_hintButton == null || !_hintButton.interactable || !LevelManager.IsInitialized) return;
+            Level level = LevelManager.Instance.ActiveLevelInstance;
+            if (level == null || level.LineManager == null) return;
+            if (level.LineManager.TryGetHint(out var hint)) hint.ShowHint();
+            else if (_hintStatus != null)
+            {
+                _hintStatus.text = "No clear exit";
+                _hintStatusUntil = Time.unscaledTime + 2f;
+            }
         }
 
         public override void Show(bool playSound = true)
         {
             base.Show(playSound);
+            _hintStatusUntil = 0f;
+            if (_hintStatus != null) _hintStatus.text = "Hint";
             
             if (!_isInitialized)
             {
@@ -52,6 +86,7 @@ namespace SerapKeremGameKit._UI
         {
             if (_uiRoot != null && _uiRoot.LivesManagerInstance != null)
             {
+                _uiRoot.LivesManagerInstance.OnLivesChanged -= HandleLivesChanged;
                 _uiRoot.LivesManagerInstance.OnLivesChanged += HandleLivesChanged;
             }
         }

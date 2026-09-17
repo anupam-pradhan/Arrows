@@ -186,7 +186,7 @@ namespace SerapKeremGameKit._LevelSystem
 
         public void CheckWinCondition()
         {
-            if (_isLevelWon) return;
+            if (_isLevelWon || _loseCoroutine != null || !isActiveAndEnabled) return;
 
             _isLevelWon = true;
             _winCoroutine = StartCoroutine(WinCoroutine());
@@ -201,7 +201,7 @@ namespace SerapKeremGameKit._LevelSystem
 
         public void CheckLoseCondition()
         {
-            if (_loseCoroutine != null) return;
+            if (_isLevelWon || _loseCoroutine != null || !isActiveAndEnabled) return;
 
             _loseCoroutine = StartCoroutine(LoseCoroutine());
         }
@@ -228,6 +228,11 @@ namespace SerapKeremGameKit._LevelSystem
         }
 
         private void OnDestroy()
+        {
+            UnsubscribeFromEvents();
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromEvents();
         }
