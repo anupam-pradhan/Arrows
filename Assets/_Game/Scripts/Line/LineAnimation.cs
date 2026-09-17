@@ -19,6 +19,7 @@ namespace _Game.Line
         private Vector3[] _tempPositionsArray;
         private Vector3ArrayPool _arrayPool;
         private float _visualZOffset;
+        private Camera _gameCamera;
 
         public bool IsPlaying => _isPlaying;
         public bool IsForward => _forward;
@@ -39,6 +40,7 @@ namespace _Game.Line
             if (lineRenderer == null) return;
 
             line = lineRenderer;
+            _gameCamera = Camera.main;
 
             var count = line.positionCount;
             if (count < 2) return;
@@ -107,6 +109,12 @@ namespace _Game.Line
 
         private void Update()
         {
+            Advance(Time.deltaTime);
+        }
+
+        private void Advance(float deltaTime)
+        {
+            if (!_isPlaying) return;
             if (!line || line.positionCount < 2)
             {
                 _isPlaying = false;
@@ -116,9 +124,9 @@ namespace _Game.Line
             }
 
             if (_forward)
-                AnimateForward();
+                AnimateForward(deltaTime);
             else
-                AnimateBackward();
+                AnimateBackward(deltaTime);
 
             ApplyVisualZOffset();
         }
@@ -135,20 +143,31 @@ namespace _Game.Line
             }
         }
 
-        private void AnimateForward()
+        private void AnimateForward(float deltaTime)
         {
             var count = line.positionCount;
             var lastPoint = line.GetPosition(count - 1);
 
-            lastPoint += _direction.normalized * (speed * Time.deltaTime);
+            float travel = Mathf.Max(0f, speed * deltaTime);
+            // Clamp travel at bends so low frame rates cannot skip past a tail waypoint.
+            if (count > 2)
+                travel = Mathf.Min(travel, Vector2.Distance(line.GetPosition(0), line.GetPosition(1)));
+            lastPoint += _direction.normalized * travel;
             line.SetPosition(count - 1, lastPoint);
 
             var tailPoint = line.GetPosition(0);
-            var tailDirection = line.GetPosition(1) - tailPoint;
-            tailPoint += tailDirection.normalized * (speed * Time.deltaTime);
+            tailPoint = Vector3.MoveTowards(tailPoint, line.GetPosition(1), travel);
             line.SetPosition(0, tailPoint);
 
             OnLinePositionsChanged?.Invoke();
+
+            if (IsOutsideViewport())
+            {
+                _isPlaying = false;
+                enabled = false;
+                OnAnimationCompleted?.Invoke();
+                return;
+            }
 
             if (!(Vector2.Distance(tailPoint, line.GetPosition(1)) < 0.1f)) return;
 
@@ -187,7 +206,24 @@ namespace _Game.Line
             }
         }
 
-        private void AnimateBackward()
+        private bool IsOutsideViewport()
+        {
+            if (_gameCamera == null) return false;
+            bool left = true, right = true, above = true, below = true;
+            for (int i = 0; i < line.positionCount; i++)
+            {
+                Vector3 point = line.GetPosition(i);
+                if (!line.useWorldSpace) point = line.transform.TransformPoint(point);
+                Vector3 viewport = _gameCamera.WorldToViewportPoint(point);
+                left &= viewport.x < -0.1f;
+                right &= viewport.x > 1.1f;
+                above &= viewport.y > 1.1f;
+                below &= viewport.y < -0.1f;
+            }
+            return left || right || above || below;
+        }
+
+        private void AnimateBackward(float deltaTime)
         {
             int lastIndex = line.positionCount - 1;
             Vector3 currentHeadPos = line.GetPosition(lastIndex);
@@ -195,7 +231,7 @@ namespace _Game.Line
             Vector3 originHeadPos = positionsOrigin[positionsOrigin.Length - 1];
 
             float distToOrigin = Vector2.Distance(currentHeadPos, originHeadPos);
-            float moveDist = speed * Time.deltaTime;
+            float moveDist = Mathf.Max(0f, speed * deltaTime);
 
             Vector3 newHeadPos;
 
@@ -224,7 +260,7 @@ namespace _Game.Line
 
                 if (Vector2.Distance(currentTailPos, targetTailPos) > 0.1f)
                 {
-                    Vector3 newTailPos = Vector3.MoveTowards(currentTailPos, targetTailPos, speed * Time.deltaTime);
+                    Vector3 newTailPos = Vector3.MoveTowards(currentTailPos, targetTailPos, moveDist);
 
                     newTailPos.z = currentTailPos.z;
 
