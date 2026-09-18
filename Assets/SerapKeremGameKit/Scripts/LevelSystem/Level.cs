@@ -39,6 +39,7 @@ namespace SerapKeremGameKit._LevelSystem
         public LineManager LineManager { get => _lineManager; set => _lineManager = value; }
 
         [SerializeField] private Transform _linesParent;
+        public Transform LinesParent => _linesParent;
         public virtual void Load()
         {
             gameObject.SetActive(true);

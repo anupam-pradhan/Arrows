@@ -37,6 +37,7 @@ namespace _Game.Line
 
             _isInitialized = true;
             enabled = true;
+            SyncPosition();
         }
 
         private void EnsureActive()
@@ -87,6 +88,11 @@ namespace _Game.Line
         }
 
         private void LateUpdate()
+        {
+            SyncPosition();
+        }
+
+        public void SyncPosition()
         {
             if (_lineRenderer == null || _lineRenderer.positionCount < 2)
             {

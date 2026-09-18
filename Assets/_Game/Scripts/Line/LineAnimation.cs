@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using SerapKeremGameKit._Audio;
 using SerapKeremGameKit._Haptics;
@@ -20,6 +21,8 @@ namespace _Game.Line
         private Vector3ArrayPool _arrayPool;
         private float _visualZOffset;
         private Camera _gameCamera;
+        private Line _ownLine;
+        private readonly List<RaycastHit2D> _sweepHits = new List<RaycastHit2D>();
 
         public bool IsPlaying => _isPlaying;
         public bool IsForward => _forward;
@@ -34,12 +37,14 @@ namespace _Game.Line
         public event Action OnAnimationStopped;
         public event Action OnAnimationCompleted;
         public event Action OnLinePositionsChanged;
+        public event Action<Collider2D> OnForwardCollision;
 
         public void Initialize(LineRenderer lineRenderer, Vector3ArrayPool arrayPool = null)
         {
             if (lineRenderer == null) return;
 
             line = lineRenderer;
+            _ownLine = GetComponent<Line>();
             _gameCamera = Camera.main;
 
             var count = line.positionCount;
@@ -152,6 +157,7 @@ namespace _Game.Line
             // Clamp travel at bends so low frame rates cannot skip past a tail waypoint.
             if (count > 2)
                 travel = Mathf.Min(travel, Vector2.Distance(line.GetPosition(0), line.GetPosition(1)));
+            Collider2D collision = FindForwardCollision(travel, out travel);
             lastPoint += _direction.normalized * travel;
             line.SetPosition(count - 1, lastPoint);
 
@@ -160,6 +166,12 @@ namespace _Game.Line
             line.SetPosition(0, tailPoint);
 
             OnLinePositionsChanged?.Invoke();
+
+            if (collision != null)
+            {
+                OnForwardCollision?.Invoke(collision);
+                return;
+            }
 
             if (IsOutsideViewport())
             {
@@ -204,6 +216,41 @@ namespace _Game.Line
                 enabled = false;
                 OnAnimationCompleted?.Invoke();
             }
+        }
+
+        private Collider2D FindForwardCollision(float travel, out float allowedTravel)
+        {
+            allowedTravel = travel;
+            CircleCollider2D head = _ownLine != null ? _ownLine.HeadCollider : null;
+            if (head == null || travel <= 0) return null;
+            Vector3 origin = line.GetPosition(line.positionCount - 1);
+            Vector3 movement = _direction.normalized * travel;
+            if (!line.useWorldSpace)
+            {
+                origin = line.transform.TransformPoint(origin);
+                movement = line.transform.TransformVector(movement);
+            }
+            origin += head.transform.TransformVector(head.offset);
+            float distance = ((Vector2)movement).magnitude;
+            if (distance < 0.0001f) return null;
+            float radius = head.radius * Mathf.Max(Mathf.Abs(head.transform.lossyScale.x), Mathf.Abs(head.transform.lossyScale.y));
+            var filter = new ContactFilter2D();
+            filter.NoFilter();
+            filter.useTriggers = true;
+            Physics2D.SyncTransforms();
+            _sweepHits.Clear();
+            gameObject.scene.GetPhysicsScene2D().CircleCast(origin, radius, movement.normalized, distance, filter, _sweepHits);
+            Collider2D closest = null;
+            float closestDistance = distance;
+            foreach (RaycastHit2D hit in _sweepHits)
+            {
+                Line other = hit.collider != null ? hit.collider.GetComponentInParent<Line>() : null;
+                if (other == null || other == _ownLine || hit.distance > closestDistance) continue;
+                closest = hit.collider;
+                closestDistance = hit.distance;
+            }
+            if (closest != null) allowedTravel = travel * Mathf.Max(0, closestDistance - 0.005f) / distance;
+            return closest;
         }
 
         private bool IsOutsideViewport()

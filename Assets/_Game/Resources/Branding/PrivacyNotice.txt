@@ -1,0 +1,18 @@
+ArrowNook: Logic Puzzle
+Development privacy notice - test build
+
+Developer: Anupam Pradhan, India
+
+Your level number, coins, sound and haptic preferences are stored on your device. This build does not include an account system or upload your puzzle progress to a game server.
+
+This build uses Google Mobile Ads and Google's User Messaging Platform. Only Google's official test ad units are configured. Test ads do not earn revenue. The SDK can communicate with Google and process device, network and advertising-related information even when test units are used.
+
+The game requests non-personalized ads with a general-audience content rating and conservative under-age-of-consent treatment. Non-personalized does not mean no data is processed. Network failure or unavailable consent leaves the game playable without ads.
+
+When Google's consent system requires a privacy-options entry, Privacy choices is available in Settings. There are no forced full-screen ads or paid hints in this build.
+
+Google privacy information:
+https://policies.google.com/privacy
+https://support.google.com/admob/answer/9012903
+
+This local development notice is not a published Play Store privacy policy. Before public release, the developer must publish a complete policy with contact details, review SDK data handling and audience settings, and complete the Play Console disclosures.

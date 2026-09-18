@@ -21,9 +21,13 @@ namespace SerapKeremGameKit._UI
 
         private bool _isInitialized = false;
         private float _hintStatusUntil;
+        private RectTransform _header;
+        private readonly Vector3[] _corners = new Vector3[4];
 
         private void Awake()
         {
+            _header = transform.Find("Header") as RectTransform;
+            ApplySafeArea();
             if (_restartButton != null) _restartButton.BindOnClick(this, OnRestartClicked);
             if (_settingsButton != null) _settingsButton.BindOnClick(this, OnSettingsClicked);
             if (_hintButton != null) _hintButton.BindOnClick(this, OnHintClicked);
@@ -122,7 +126,41 @@ namespace SerapKeremGameKit._UI
         public void SetLevelIndex(int levelIndex)
         {
             if (_levelText != null)
+            {
+                _levelText.enableAutoSizing = true;
+                _levelText.fontSizeMin = 20;
                 _levelText.text = $"Level {levelIndex + 1}";
+            }
+        }
+
+        public Rect GetBoardScreenRect()
+        {
+            ApplySafeArea();
+            Canvas.ForceUpdateCanvases();
+            Rect area = Screen.safeArea;
+            Canvas canvas = GetComponentInParent<Canvas>();
+            Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            if (_header != null)
+            {
+                _header.GetWorldCorners(_corners);
+                area.yMax = Mathf.Min(area.yMax, RectTransformUtility.WorldToScreenPoint(camera, _corners[0]).y);
+            }
+            if (_hintButton != null)
+            {
+                ((RectTransform)_hintButton.transform).GetWorldCorners(_corners);
+                area.yMin = Mathf.Max(area.yMin, RectTransformUtility.WorldToScreenPoint(camera, _corners[1]).y);
+            }
+            return area;
+        }
+
+        private void ApplySafeArea()
+        {
+            if (Screen.width <= 0 || Screen.height <= 0) return;
+            var rect = (RectTransform)transform;
+            Rect safe = Screen.safeArea;
+            rect.anchorMin = new Vector2(safe.xMin / Screen.width, safe.yMin / Screen.height);
+            rect.anchorMax = new Vector2(safe.xMax / Screen.width, safe.yMax / Screen.height);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
         public void UpdateTimeDisplay(float remainingTime)

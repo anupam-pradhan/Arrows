@@ -158,6 +158,7 @@ namespace _Game.Line
             if (_animation != null)
             {
                 _animation.OnLinePositionsChanged += HandleLinePositionsChanged;
+                _animation.OnForwardCollision += HandleHeadCollision;
                 _animation.OnAnimationStarted += HandleAnimationStarted;
                 _animation.OnAnimationStopped += HandleAnimationStopped;
                 _animation.OnAnimationCompleted += HandleAnimationCompleted;
@@ -169,6 +170,7 @@ namespace _Game.Line
             if (_animation != null)
             {
                 _animation.OnLinePositionsChanged -= HandleLinePositionsChanged;
+                _animation.OnForwardCollision -= HandleHeadCollision;
                 _animation.OnAnimationStarted -= HandleAnimationStarted;
                 _animation.OnAnimationStopped -= HandleAnimationStopped;
                 _animation.OnAnimationCompleted -= HandleAnimationCompleted;
@@ -178,6 +180,7 @@ namespace _Game.Line
 
         private void HandleLinePositionsChanged()
         {
+            if (_lineHead != null) _lineHead.SyncPosition();
             if (_colliderSpawner != null)
             {
                 _colliderSpawner.UpdateSegments();
