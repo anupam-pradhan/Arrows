@@ -1,3 +1,4 @@
+using ArrowNook.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,8 +20,15 @@ namespace SerapKeremGameKit._UI
         [SerializeField] private UIRootController _uiRoot;
         [SerializeField] private HeartPanel _heartPanel;
 
+        [Header("Move-count pill (optional)" )]
+        [Tooltip("The Image behind the move-count label. Gets the theme pill background color.")]
+        [SerializeField] private Image _moveCountPillImage;
+        [Tooltip("The TMP label showing the move count. Gets the theme pill foreground color.")]
+        [SerializeField] private TextMeshProUGUI _moveCountText;
+
         private bool _isInitialized = false;
         private float _hintStatusUntil;
+        private int _moveCount;
         private RectTransform _header;
         private readonly Vector3[] _corners = new Vector3[4];
 
@@ -31,6 +39,37 @@ namespace SerapKeremGameKit._UI
             if (_restartButton != null) _restartButton.BindOnClick(this, OnRestartClicked);
             if (_settingsButton != null) _settingsButton.BindOnClick(this, OnSettingsClicked);
             if (_hintButton != null) _hintButton.BindOnClick(this, OnHintClicked);
+            ApplyThemeColors();
+        }
+
+        /// <summary>Apply ArrowNook theme colors to all HUD elements.</summary>
+        private void ApplyThemeColors()
+        {
+            // Level label
+            if (_levelText != null)
+                _levelText.color = ArrowNookTheme.LabelPrimary;
+
+            // Hint status text
+            if (_hintStatus != null)
+                _hintStatus.color = ArrowNookTheme.LabelPrimary;
+
+            // Time text
+            if (_timeText != null)
+                _timeText.color = ArrowNookTheme.LabelSecondary;
+
+            // Move-count pill
+            if (_moveCountPillImage != null)
+                _moveCountPillImage.color = ArrowNookTheme.PillBackground;
+            if (_moveCountText != null)
+                _moveCountText.color = ArrowNookTheme.PillForeground;
+        }
+
+        /// <summary>Update the move-count pill with the current number of moves used.</summary>
+        public void SetMoveCount(int moves)
+        {
+            _moveCount = moves;
+            if (_moveCountText != null)
+                _moveCountText.text = moves.ToString();
         }
 
         private void Update()
@@ -125,11 +164,20 @@ namespace SerapKeremGameKit._UI
 
         public void SetLevelIndex(int levelIndex)
         {
+            SetLevelLabel($"Level {levelIndex + 1}");
+        }
+
+        /// <summary>
+        /// Sets the level label to any string (e.g. "Level 42" or "Daily Challenge").
+        /// </summary>
+        public void SetLevelLabel(string label)
+        {
             if (_levelText != null)
             {
                 _levelText.enableAutoSizing = true;
                 _levelText.fontSizeMin = 20;
-                _levelText.text = $"Level {levelIndex + 1}";
+                _levelText.color = ArrowNookTheme.LabelPrimary;
+                _levelText.text = label;
             }
         }
 
