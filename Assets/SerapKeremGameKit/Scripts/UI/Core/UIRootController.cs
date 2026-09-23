@@ -8,6 +8,7 @@ using SerapKeremGameKit._Audio;
 using SerapKeremGameKit._Haptics;
 using _Game.UI;
 using ArrowNook.Ads;
+using ArrowNook.PlayServices;
 
 namespace SerapKeremGameKit._UI
 {
@@ -25,6 +26,9 @@ namespace SerapKeremGameKit._UI
 
         private GameState _lastState = GameState.None;
         private ResultsBannerController _ads;
+        private InterstitialAdController _interstitialAds;
+        private PlayReviewController _playReview;
+        private PlayUpdateController _playUpdates;
 
         [Header("Audio Keys")]
         [SerializeField] private string _keyOnWin = "game_win";
@@ -37,6 +41,9 @@ namespace SerapKeremGameKit._UI
         private void Awake()
         {
             _ads = gameObject.AddComponent<ResultsBannerController>();
+            _interstitialAds = gameObject.AddComponent<InterstitialAdController>();
+            _playReview = gameObject.AddComponent<PlayReviewController>();
+            _playUpdates = gameObject.AddComponent<PlayUpdateController>();
             // Auto-wire if not assigned
             if (_hud == null) _hud = GetComponentInChildren<HUDPanel>(true);
             if (_win == null) _win = GetComponentInChildren<WinPanel>(true);
@@ -245,7 +252,20 @@ namespace SerapKeremGameKit._UI
             {
                 CurrencyWallet.Instance.Add(reward);
             }
-            OnNextLevelRequested();
+
+            int completedLevelNumber = LevelManager.Instance.ActiveLevelNumber;
+            void ContinueWithInterstitial()
+            {
+                if (_interstitialAds != null)
+                    _interstitialAds.OnLevelComplete(completedLevelNumber, OnNextLevelRequested);
+                else
+                    OnNextLevelRequested();
+            }
+
+            if (_playReview != null && _playReview.TryRequestReview(completedLevelNumber, OnNextLevelRequested))
+                return;
+
+            ContinueWithInterstitial();
         }
 
         public void OnOpenSettings()

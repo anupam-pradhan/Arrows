@@ -6,16 +6,8 @@ using UnityEngine;
 
 namespace ArrowNook.Ads
 {
-    // Test units only. Live monetization needs the release checklist and an age/consent review.
     public sealed class ResultsBannerController : MonoBehaviour
     {
-#if UNITY_ANDROID
-        private const string BannerUnit = "ca-app-pub-3940256099942544/6300978111";
-#elif UNITY_IOS
-        private const string BannerUnit = "ca-app-pub-3940256099942544/2934735716";
-#else
-        private const string BannerUnit = "unused";
-#endif
         public static ResultsBannerController Instance { get; private set; }
         public bool PrivacyOptionsRequired => _consentChecked &&
             ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required;
@@ -103,8 +95,10 @@ namespace ArrowNook.Ads
         private void GatherConsent()
         {
             _consentBusy = true;
-            // Conservative for the 13+ audience in this test build; do not assume every teen can consent.
-            var request = new ConsentRequestParameters { TagForUnderAgeOfConsent = true };
+            var request = new ConsentRequestParameters
+            {
+                TagForUnderAgeOfConsent = AdMobIds.TagForUnderAgeOfConsent
+            };
             ConsentInformation.Update(request, error => OnMainThread(() =>
             {
                 if (error != null) { FinishConsent(); return; }
@@ -124,7 +118,9 @@ namespace ArrowNook.Ads
             {
                 MaxAdContentRating = MaxAdContentRating.G,
                 TagForChildDirectedTreatment = TagForChildDirectedTreatment.False,
-                TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True
+                TagForUnderAgeOfConsent = AdMobIds.TagForUnderAgeOfConsent
+                    ? TagForUnderAgeOfConsent.True
+                    : TagForUnderAgeOfConsent.False
             });
             MobileAds.Initialize(_ => OnMainThread(() =>
             {
@@ -139,7 +135,9 @@ namespace ArrowNook.Ads
             if (!_initialized || _results == null || _paused || !_focused || _consentBusy ||
                 !ConsentInformation.CanRequestAds() || _banner != null ||
                 Time.realtimeSinceStartupAsDouble < _retryAt) return;
-            var banner = new BannerView(BannerUnit, AdSize.Banner, AdPosition.Bottom);
+            string unitId = AdMobIds.BannerUnitId;
+            if (string.IsNullOrWhiteSpace(unitId)) return;
+            var banner = new BannerView(unitId, AdSize.Banner, AdPosition.Bottom);
             _banner = banner;
             banner.Hide();
             PositionBanner();
@@ -158,7 +156,7 @@ namespace ArrowNook.Ads
                 _retryAt = Time.realtimeSinceStartupAsDouble + BannerPolicy.RetryDelaySeconds(++_failures);
             });
             var request = new AdRequest();
-            request.Extras.Add("npa", "1");
+            if (AdMobIds.ForceNonPersonalizedAds) request.Extras.Add("npa", "1");
             banner.LoadAd(request);
         }
 

@@ -1,6 +1,7 @@
 using ArrowNook.Puzzles;
 using GoogleMobileAds.Api;
 using GoogleMobileAds.Common;
+using GoogleMobileAds.Ump.Api;
 using UnityEngine;
 
 namespace ArrowNook.Ads
@@ -19,14 +20,6 @@ namespace ArrowNook.Ads
     /// </summary>
     public sealed class InterstitialAdController : MonoBehaviour
     {
-#if UNITY_ANDROID
-        private const string InterstitialUnit = "ca-app-pub-3940256099942544/1033173712";
-#elif UNITY_IOS
-        private const string InterstitialUnit = "ca-app-pub-3940256099942544/4411468910";
-#else
-        private const string InterstitialUnit = "unused";
-#endif
-
         public static InterstitialAdController Instance { get; private set; }
 
         private InterstitialAd _interstitial;
@@ -102,10 +95,12 @@ namespace ArrowNook.Ads
         {
             if (_interstitial != null) return;
             if (!Application.isMobilePlatform || Application.isEditor) return;
-            // The banner controller initialises MobileAds; we piggyback on it.
+            if (!ConsentInformation.CanRequestAds()) return;
+            string unitId = AdMobIds.InterstitialUnitId;
+            if (string.IsNullOrWhiteSpace(unitId)) return;
             var request = new AdRequest();
-            request.Extras.Add("npa", "1"); // non-personalized
-            InterstitialAd.Load(InterstitialUnit, request, (ad, error) =>
+            if (AdMobIds.ForceNonPersonalizedAds) request.Extras.Add("npa", "1");
+            InterstitialAd.Load(unitId, request, (ad, error) =>
             {
                 if (error != null) return;
                 OnMainThread(() => _interstitial = ad);
