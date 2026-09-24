@@ -46,15 +46,5 @@ namespace ArrowNook.Puzzles
         /// </summary>
         public static string TodayPrefsKey => "daily_done_" + DateTime.Now.ToString("yyyyMMdd");
 
-        /// <summary>Whether the player already finished today's challenge.</summary>
-        public static bool CompletedToday
-        {
-            get => UnityEngine.PlayerPrefs.GetInt(TodayPrefsKey, 0) == 1;
-            set
-            {
-                UnityEngine.PlayerPrefs.SetInt(TodayPrefsKey, value ? 1 : 0);
-                UnityEngine.PlayerPrefs.Save();
-            }
-        }
     }
 }
